@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from random import random
 import sqlite3
 from Cookie import SimpleCookie
+from types import MethodType
 
 
 ###############################################################################
@@ -127,27 +128,20 @@ class Session(object):
         """
         return self._cookie_to_send or None
 
-    def __len__(self):
-        return len(self._vars)
-
-    def __getitem__(self, key):
-        return self._vars[key]
-
-    def __setitem__(self, key, value):
-        self._vars[key] = value
-
-    def __delitem__(self, key):
-        del self._vars[key]
-
-    def __iter__(self):
-        return iter(self._vars)
-
-    def __contains__(self, key):
-        return key in self._vars
-
     def __repr__(self):
         return ("Session(cookie_header=%s, config=%s)" %
                 (self.cookie, self._config))
+
+
+# Add dict methods to Session class for accessing vars
+for name in ['get', 'keys', 'values', 'items', 'has_key',
+             '__len__', '__getitem__', '__setitem__', '__delitem__',
+             '__iter__', '__contains__']:
+    def _make_method(name):
+        m = (lambda self, *args, **kwargs:
+             getattr(self._vars, name)(*args, **kwargs))
+        return MethodType(m, None, Session)
+    setattr(Session, name, _make_method(name))
 
 
 class SessionInterface(object):
@@ -177,26 +171,15 @@ class SessionInterface(object):
     def __delattr__(self, name):
         delattr(self.session(), name)
 
-    def __len__(self):
-        return len(self.session())
 
-    def __getitem__(self, key):
-        return self.session()[key]
-
-    def __setitem__(self, key, value):
-        self.session()[key] = value
-
-    def __delitem__(self, key):
-        del self.session()[key]
-
-    def __repr__(self):
-        return repr(self.session())
-
-    def __iter__(self):
-        return iter(self.session())
-
-    def __contains__(self, key):
-        return key in self.session()
+# Add dict methods to SessionInterface class for accessing session
+for name in ['__len__', '__getitem__', '__setitem__', '__delitem__',
+             '__iter__', '__contains__']:
+    def _make_method(name):
+        m = (lambda self, *args, **kwargs:
+             getattr(self.session(), name)(*args, **kwargs))
+        return MethodType(m, None, SessionInterface)
+    setattr(SessionInterface, name, _make_method(name))
 
 
 ###############################################################################

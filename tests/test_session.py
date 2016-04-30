@@ -192,41 +192,6 @@ class TestSession(unittest.TestCase):
                       self.es.get_cookie_to_send().lower())
         )
 
-    def test___len__(self):
-        """It should return # of vars"""
-        self.assertEqual(len(self.ns), 0)
-        self.assertEqual(len(self.es), 2)
-
-    def test___getitem__(self):
-        """It should return the value for a given key"""
-        self.assertEqual(self.es['key1'], "string")
-        self.assertEqual(self.es['key2'], 123)
-        self.assertRaises(KeyError, self.es.__getitem__, 'key3')
-
-    def test___setitem__(self):
-        """It should store a value with a given key"""
-        self.es['key1'] = "other"
-        self.es['key2'] = [1, 2, 3]
-        self.assertEqual(self.es['key1'], "other")
-        self.assertEqual(self.es['key2'], [1, 2, 3])
-
-    def test___delitem__(self):
-        """It should delete the value for a given key"""
-        del self.es['key1']
-        self.assertRaises(KeyError, self.es.__getitem__, 'key1')
-        self.assertEqual(self.es['key2'], 123)
-
-    def test___iter__(self):
-        """It should return iterator for vars"""
-        keys = sorted([k for k in self.es])
-        self.assertEqual(keys, ['key1', 'key2'])
-
-    def test___contains__(self):
-        """It should test a session contains a given key"""
-        self.assertTrue('key1' in self.es)
-        self.assertTrue('key2' in self.es)
-        self.assertFalse('key3' in self.es)
-
     def test___repr__(self):
         """It should return repr format string"""
         self.assertTrue(repr(self.ns).startswith(
@@ -235,6 +200,70 @@ class TestSession(unittest.TestCase):
         self.assertTrue(repr(self.es).startswith(
             "Session(cookie_header=" + str(self.es.cookie)
         ))
+
+    def test_get(self):
+        """It should have dict#get method"""
+        self.assertEqual(self.es.get('key1'), "string")
+        self.assertEqual(self.es.get('key2'), 123)
+        self.assertIsNone(self.es.get('key3'))
+        self.assertEqual(self.es.get('key3', [1, 2, 3]), [1, 2, 3])
+
+    def test_keys(self):
+        """It should have dict#keys method"""
+        self.assertEqual(self.ns.keys(), [])
+        self.assertEqual(sorted(self.es.keys()), ['key1', 'key2'])
+
+    def test_values(self):
+        """It should have dict#values method"""
+        self.assertEqual(self.ns.values(), [])
+        self.assertEqual(sorted(self.es.values()), [123, "string"])
+
+    def test_items(self):
+        """It should have dict#items method"""
+        self.assertEqual(self.ns.items(), [])
+        self.assertEqual(sorted(self.es.items()),
+                         [('key1', "string"), ('key2', 123)])
+
+    def has_key(self):
+        """It should have dict#has_key method"""
+        self.assertTrue(self.es.has_key('key1'))
+        self.assertTrue(self.es.has_key('key2'))
+        self.assertFalse(self.es.has_key('key3'))
+
+    def test___len__(self):
+        """It should have dict#__len__ method"""
+        self.assertEqual(len(self.ns), 0)
+        self.assertEqual(len(self.es), 2)
+
+    def test___getitem__(self):
+        """It should have dict#__getitem__ method"""
+        self.assertEqual(self.es['key1'], "string")
+        self.assertEqual(self.es['key2'], 123)
+        self.assertRaises(KeyError, self.es.__getitem__, 'key3')
+
+    def test___setitem__(self):
+        """It should have dict#__setitem__ method"""
+        self.es['key1'] = "other"
+        self.es['key2'] = [1, 2, 3]
+        self.assertEqual(self.es['key1'], "other")
+        self.assertEqual(self.es['key2'], [1, 2, 3])
+
+    def test___delitem__(self):
+        """It should have dict#__delitem__ method"""
+        del self.es['key1']
+        self.assertRaises(KeyError, self.es.__getitem__, 'key1')
+        self.assertEqual(self.es['key2'], 123)
+
+    def test___iter__(self):
+        """It should have dict#__iter__ method"""
+        keys = sorted([k for k in self.es])
+        self.assertEqual(keys, ['key1', 'key2'])
+
+    def test___contains__(self):
+        """It should have dict#__contains__ method"""
+        self.assertTrue('key1' in self.es)
+        self.assertTrue('key2' in self.es)
+        self.assertFalse('key3' in self.es)
 
 
 if __name__ == '__main__':
