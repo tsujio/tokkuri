@@ -360,10 +360,6 @@ class SQLiteStore(object):
 
         self.timeout = timeout
 
-        # Setup connection
-        self._conn = sqlite3.connect(self.path)
-        self._conn.row_factory = sqlite3.Row  # Access column by name
-
         # Create db unless exists
         self.create_db_unless_exists()
 
@@ -375,9 +371,26 @@ class SQLiteStore(object):
     def path(self):
         return self._config['path']
 
-    def create_db_unless_exists(self):
+    def create_connection(func):
+        """Decorator function for creating db connection"""
+        def _create_connection(self, *args, **kwargs):
+            # Open connection
+            conn = sqlite3.connect(self.path)
+            conn.row_factory = sqlite3.Row  # Access columns by name
+
+            # Call method
+            kwargs['conn'] = conn
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                # Close connection
+                conn.close()
+        return _create_connection
+
+    @create_connection
+    def create_db_unless_exists(self, conn):
         """Create db and tables unless exist"""
-        self._conn.execute(
+        conn.execute(
             "CREATE TABLE IF NOT EXISTS sessions ("
             "  id TEXT PRIMARY KEY,"  # Session id
             "  ctime INTEGER NOT NULL,"  # Created time
@@ -386,41 +399,40 @@ class SQLiteStore(object):
             ")"
         )
 
-    def gc(self):
+    @create_connection
+    def gc(self, conn):
         """Delete all timed out sessions"""
-        with self._conn:
-            self._conn.execute(
-                "DELETE FROM sessions WHERE atime < ?",
-                (int(time()) - self.timeout,)
-            )
+        with conn:
+            conn.execute("DELETE FROM sessions WHERE atime < ?",
+                         (int(time()) - self.timeout,))
 
-    def save(self, id, vars):
+    @create_connection
+    def save(self, id, vars, conn):
         """Save session to db"""
         now = int(time())
-        with self._conn:
+        with conn:
             # Delete session and return if no vars to be saved
             if not vars:
-                self._conn.execute(
-                    "DELETE FROM sessions WHERE id = ?", (id,)
-                )
+                conn.execute("DELETE FROM sessions WHERE id = ?", (id,))
                 return
 
             # Create session if not exist (vars are saved later)
-            self._conn.execute(
+            conn.execute(
                 ("INSERT OR IGNORE INTO sessions(id, ctime, atime, vars) "
                  "VALUES (?, ?, ?, ?)"),
                 (id, now, now, '')
             )
 
             # Update atime (for existing session) and save session vars
-            self._conn.execute(
+            conn.execute(
                 "UPDATE sessions SET atime = ?, vars = ? WHERE id = ?",
                 (now, json.dumps(vars), id)
             )
 
-    def load(self, id):
+    @create_connection
+    def load(self, id, conn):
         """Load session from db"""
-        row = self._conn.execute(
+        row = conn.execute(
             ("SELECT vars FROM sessions WHERE id = ? AND atime > ?"),
             (id, int(time()) - self.timeout)
         ).fetchone()
